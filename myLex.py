@@ -37,7 +37,8 @@ class MyLexer(object):
         'HASH',
         'BLOCKOPEN',
         'BLOCKCLOSE',
-        'SEMICOLON'
+        'SEMICOLON',
+        'COMMA'
     )
 
     # Regular expression rules for simple tokens
@@ -53,7 +54,7 @@ class MyLexer(object):
     t_BLOCKOPEN = r'{'
     t_BLOCKCLOSE= r'}'
     t_SEMICOLON = r';'
-
+    t_COMMA = r','
     # A regular expression rule with some action code
     # Note addition of self parameter since we're in a class
     def t_NUMBER(self,t):
