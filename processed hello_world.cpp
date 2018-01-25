@@ -1,0 +1,1 @@
+#include<iostream>using namespace std;int main(){ int sum = 10+10int something = (2/3)*5; (10 + (2/3));return 0;}

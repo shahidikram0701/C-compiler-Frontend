@@ -110,8 +110,9 @@ m = MyLexer()
 # Build the lexer
 m.build()
 
-with open("hello_world.cpp", "r") as f:
+with open("processed hello_world.cpp", "r") as f:
     data = f.read().strip()
+
 
 print("C++ CODE\n")
 print(data)
