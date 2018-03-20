@@ -16,11 +16,11 @@ def t_IDENTIFIER(t):
     r'[a-zA-Z_][a-zA-Z0-9_\-]*'
     if(t.value in list(macros.keys())):
     	return t
-        
+
 def t_COMMENTS(t):
     # Match and ignore comments
     # Just handling single line comments for now!
-    r'//.*'
+    r"(/\*.*?\*/|//[^\r\n]*$)"
     return t
 
 def t_error(t):
@@ -46,19 +46,24 @@ for i in range(len(x)):
 		while True:
 			lexer.input(line)
 			tok = lexer.token()
-			if not tok: 
+			#print(line)
+			if not tok:
 				break      # No more input
 			#print(tok)
 			if(tok.type == "COMMENTS"):
+				#print(tok)
+				#print(line[:line.find('/')])
 				new_line = " "
 				break
 			else:
+				#print(line)
 				new_line = line[:tok.lexpos] + macros[line[tok.lexpos]] + line[tok.lexpos+1:]
 				line = new_line
 
 		if(new_line):
+			pass
 			#print(new_line)
-			o.write(new_line)
+			o.write(line[:line.find('/')].strip())
 		else:
 			#print(line)
 			o.write(line)
