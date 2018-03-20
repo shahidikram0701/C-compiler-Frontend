@@ -18,7 +18,7 @@ class MyLexer(object):
         'using'     : 'USING',
         'namespace' : 'NAMESPACE',
         'std'       : 'STD'
-    }   
+    }
 
     # List of token names.   This is always required
     tokens = (
@@ -55,11 +55,12 @@ class MyLexer(object):
     t_BLOCKCLOSE= r'}'
     t_SEMICOLON = r';'
     t_COMMA = r','
+    
     # A regular expression rule with some action code
     # Note addition of self parameter since we're in a class
     def t_NUMBER(self,t):
         r'\d+'
-        t.value = int(t.value)    
+        t.value = int(t.value)
         return t
 
     def t_IDENTIFIER(self, t):
@@ -68,7 +69,7 @@ class MyLexer(object):
 
         if(t.value in list(self.reserved.keys())):
             t.type = "KEYWORD"
-        
+
         return(t)
 
     def t_COMMENTS(self, t):
@@ -93,30 +94,36 @@ class MyLexer(object):
     # Build the lexer
     def build(self,**kwargs):
         self.lexer = lex.lex(module=self, **kwargs)
-    
+
     # Test it output
     def test(self,data):
         self.lexer.input(data)
         while True:
              tok = self.lexer.token()
-             if not tok: 
+             if not tok:
                  break
              print(tok)
 
-
-
-# Build the lexer and try it out
+# create the lexer
 m = MyLexer()
 
 # Build the lexer
 m.build()
 
-with open("processed hello_world.cpp", "r") as f:
-    data = f.read().strip()
+
+if __name__ == "__main__":
+    # Build the lexer and try it out
+    m = MyLexer()
+
+    # Build the lexer
+    m.build()
+
+    with open("processed hello_world.cpp", "r") as f:
+        data = f.read().strip()
 
 
-print("C++ CODE\n")
-print(data)
-print("\n")
-print("TOKENS\n\n")
-m.test(data)     # Test it
+    print("C++ CODE\n")
+    print(data)
+    print("\n")
+    print("TOKENS\n\n")
+    m.test(data)     # Test it
