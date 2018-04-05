@@ -1,1 +1,1 @@
-#include<iostream>using namespace std;int main(){ int sum = 10+10int something = (2/3)*5; (10 + (2/3));return 0;}
+int main(){ if(x==0){x++;}else{x--;}; return 0; } int ass1 = 10; int ass2 = 20;
