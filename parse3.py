@@ -46,6 +46,7 @@ array_variables = {}
 symbol_entry = {"name": None, "type": None, "value": None, "width": None, "scope": None}
 
 ast_stack = []
+ast_stack_copy = []
 
 def print_symbol_table():
     print("*" * 50)
@@ -290,7 +291,7 @@ def p_ITERATION_STATEMENT(p):
 
 def p_SELECTION_STATEMENT(p):
   '''SELECTION_STATEMENT              : If l_paren EXPRESSION r_paren COMPOUND_STATEMENT
-                                      | If l_paren EXPRESSION r_paren COMPOUND_STATEMENT Else COMPOUND_STATEMENT ''' #add tokens for if, else
+                                      | If l_paren EXPRESSION r_paren COMPOUND_STATEMENT TEMP Else COMPOUND_STATEMENT ''' #add tokens for if, else
   #print("SELECTION_STATEMENT")
   if(len(p) == 6):
       # only if
@@ -318,9 +319,9 @@ def p_SELECTION_STATEMENT(p):
       #reduce()
   else:
       # if - else
-      #print("IF_ELSE")
-      pass
-      #print("AST stack - ", ast_stack)
+      print("IF_ELSE")
+
+      print("AST stack - ", ast_stack)
       #inorder(ast_stack[1].left)
       #inorder(ast_stack[1].right)
       #if_else_shit = ast_stack.pop()
@@ -329,15 +330,32 @@ def p_SELECTION_STATEMENT(p):
       #body_node = if_body + else_body
       #inorder(body_node)
       '''
-      else_body = ast_stack.pop()
-      if_body = ast_stack.pop()
-      cond_node = ast_stack.pop()
-      if_node = Node(value = "if", left = Node(value = "cond", left = cond_node), right = Node(value = "if_body", left = if_body))
-      else_node = Node(value = "else", left = Node(value = "else_body", left = else_body))
-      if_else_node = Node(value = "if-else", left = if_node, right = else_node)
-      ast_stack.append(if_else_node)
+      for i in ast_stack_copy:
+          print(i)
+          print("*" * 50)
       '''
+
+      else_body = ast_stack.pop()
+
+      else_node = Node(value = "else", left = Node(value = "else_body", left = else_body))
+
+      if_else_node = Node(value = "if-else", left = ast_stack_copy.pop(), right = else_node)
+
+      ast_stack.insert(0, ast_stack_copy.pop())
+      ast_stack.append(if_else_node)
       #reduce()
+
+def p_TEMP(p):
+    '''TEMP                           : EPSILON '''
+    print("Else handle")
+    print("AST - stack ")
+    print(ast_stack)
+    (cond_node, body_node) = gimme2sequences(ast_stack.pop())
+    if_node = Node(value = "if", left = Node(value = "cond", left = cond_node), right = Node(value = "if_body", left = body_node))
+    ast_stack.append(if_node)
+    ast_stack_copy.insert(0, ast_stack.pop())
+    ast_stack_copy.insert(0, ast_stack.pop())
+
 
 def p_JUMP_STATEMENT(p):
   '''JUMP_STATEMENT                   : Break semicolon
