@@ -50,6 +50,7 @@ ast_stack = []
 ast_stack_copy = []
 
 t_num = 1
+label_num = 1
 
 code = ""
 
@@ -168,7 +169,59 @@ def get_temp():
     t_num += 1
     return r
 
+def generate_label():
+    global label_num
+    r = "L" + str(label_num)
+    label_num += 1
+    return r
+
+def code_gen_if(node):
+    if_code = ""
+    node.left.visited = True
+    (cond_code, cond_temp) = code_gen_expression(node.left)
+    lab = generate_label()
+    print(cond_code)
+    print("\nifFalse" + " " + cond_temp + " goto" + " " + lab)
+    ICG(node.right)
+    print(lab + ":\n")
+
+
+def code_gen_if_else(node):
+    node.left.visited = True
+    node.left.left.visited = True
+    (cond_code, cond_temp) = code_gen_expression(node.left.left)
+    lab = generate_label()
+    lab2 = generate_label()
+    print(cond_code)
+    print("\nifFalse" + " " + cond_temp + " goto" + " " + lab)
+    node.left.right.visited = True
+    ICG(node.left.right.left)
+    print("goto", lab2)
+    print("\n" + lab + ":")
+    node.right.visited = True
+    node.right.left.visited = True
+    ICG(node.right.left.left)
+    print('\n' + lab2 + ":\n")
+
+def code_gen_while(node):
+    #while_code = ""
+    node.left.visited = True
+    node.left.left.visited = True
+    (cond_code, cond_temp) = code_gen_expression(node.left.left)
+    lab = generate_label() #equal to begin
+    lab2 = generate_label()
+    print(lab + ":")
+    print(cond_code)
+    print("\nifFalse" + " " + cond_temp + " goto" + " " + lab2)
+    node.right.visited = True
+    ICG(node.right.left)
+    print("goto", lab)
+    print(lab2 + ":")
+
+
 def code_gen_declaration(node):
+    # Handle array declarations!!!
+
     declaration_code = ""
     var_type = node.left.value
     node.left.visited = True
@@ -188,6 +241,22 @@ def code_gen_declaration(node):
 
     return declaration_code
 
+def code_gen_assignment(node):
+    assignment_code = ''
+    node.left.visited = True
+
+    var_name = node.left.value
+
+    node.right.visited = True
+    if(node.right.value not in ['+', '-', '*', '/', '%']):
+        assignment_code = assignment_code + var_name + " = " + str(node.right.value)
+    else:
+        (expr_code, expr_temp) = code_gen_expression(node.right)
+        print(expr_code)
+        assignment_code = assignment_code + var_name + " = " + expr_temp
+
+    return assignment_code
+
 def code_gen_expression(node):
     expression_code = ""
     exp_stack = []
@@ -200,7 +269,7 @@ def code_gen_expression(node):
             postorder2(node2.right)
             #print(node2.value)
 
-            if(node2.value in ['+', '-', '*', '/', '%']):
+            if(node2.value in ['+', '-', '*', '/', '%', '<', '>', '==', '>=', '<=', '!=']):
                 t = get_temp()
                 right = str(exp_stack.pop())
                 left = str(exp_stack.pop())
@@ -213,17 +282,27 @@ def code_gen_expression(node):
 
     return (expression_code, exp_stack[0])
 
-
-
 def process_node(node):
     #print("process_node")
     #print(node)
     if(node.visited == False):
         if(node.value == "Declaration"):
+            #print(node)
+            # Code for generating declaration statements
             print(code_gen_declaration(node))
         elif(node.value in ['+', '-', '*', '/', '%']):
             # Code for generating expressions
             print(code_gen_expression(node)[0])
+        elif(node.value == "="):
+            # Code for generating assignment expressions
+            print(code_gen_assignment(node))
+        elif(node.value == "if"):
+            # Code for generating if expressions
+            print(code_gen_if(node))
+        elif(node.value == "if-else"):
+            print(code_gen_if_else(node))
+        elif(node.value == "while"):
+            print(code_gen_while(node))
         node.visited = True
 
 
@@ -254,10 +333,11 @@ def p_PROGRAM(p):
   print("\n\nDISPLAYING THE TREE YO!!\n\n")
   print(ast_stack[0])
 
+  '''
   print("\n\nICG YO!!\n\n")
   ICG(ast_stack[0])
-  print(code)
-
+  print()
+  '''
 
 def p_EPSILON(p):
   '''EPSILON                          : '''
