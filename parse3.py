@@ -10,10 +10,11 @@ tokens = m.tokens
 print(tokens)
 
 class Node:
-    def __init__(self, value = None, left = None, right = None):
+    def __init__(self, value = None, left = None, right = None, visited = False):
         self.value = value
         self.left = left
         self.right = right
+        self.visited = visited
 
     def __str__(self, depth=0):
         ret = ""
@@ -47,6 +48,10 @@ symbol_entry = {"name": None, "type": None, "value": None, "width": None, "scope
 
 ast_stack = []
 ast_stack_copy = []
+
+t_num = 1
+
+code = ""
 
 def print_symbol_table():
     print("*" * 50)
@@ -157,6 +162,78 @@ def traverse(root):
                 next_level.append(n.right)
             current_level = next_level
 
+def get_temp():
+    global t_num
+    r = "t" + str(t_num)
+    t_num += 1
+    return r
+
+def code_gen_declaration(node):
+    declaration_code = ""
+    var_type = node.left.value
+    node.left.visited = True
+
+    node.right.visited = True
+    var_name = node.right.left.value
+    node.right.left.visited = True
+
+    node.right.right.visited = True
+
+    if(node.right.right.value not in ['+', '-', '*', '/', '%']):
+        declaration_code = declaration_code + var_name + " = " + str(node.right.right.value)
+    else:
+        (exp_code, temp) = code_gen_expression(node.right.right)
+        print(exp_code)
+        declaration_code = declaration_code + var_name + " = " + temp # wait i'll test
+
+    return declaration_code
+
+def code_gen_expression(node):
+    expression_code = ""
+    exp_stack = []
+    #print(node)
+    # exp_code
+    def postorder2(node2):
+        nonlocal expression_code
+        if(node2 != None):
+            postorder2(node2.left)
+            postorder2(node2.right)
+            #print(node2.value)
+
+            if(node2.value in ['+', '-', '*', '/', '%']):
+                t = get_temp()
+                right = str(exp_stack.pop())
+                left = str(exp_stack.pop())
+                expression_code = expression_code + "\n" + t + " = " + left + " " + node2.value + " " + right
+                exp_stack.append(t)
+            else:
+                exp_stack.append(node2.value)
+            node2.visited = True
+    postorder2(node)
+
+    return (expression_code, exp_stack[0])
+
+
+
+def process_node(node):
+    #print("process_node")
+    #print(node)
+    if(node.visited == False):
+        if(node.value == "Declaration"):
+            print(code_gen_declaration(node))
+        elif(node.value in ['+', '-', '*', '/', '%']):
+            # Code for generating expressions
+            print(code_gen_expression(node)[0])
+        node.visited = True
+
+
+def ICG(tree):
+    if(tree != None):
+        process_node(tree)
+        ICG(tree.left)
+        ICG(tree.right)
+
+
 def p_PROGRAM(p):
   '''PROGRAM                          : GLOBAL_STATEMENT_LIST MAIN '''
   #p[0]['type'] = p[1]
@@ -176,6 +253,11 @@ def p_PROGRAM(p):
       print("*" * 50)
   print("\n\nDISPLAYING THE TREE YO!!\n\n")
   print(ast_stack[0])
+
+  print("\n\nICG YO!!\n\n")
+  ICG(ast_stack[0])
+  print(code)
+
 
 def p_EPSILON(p):
   '''EPSILON                          : '''
