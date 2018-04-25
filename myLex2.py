@@ -1,5 +1,6 @@
 import ply.lex as lex
 from ply.lex import TOKEN
+import sys
 
 class MyLexer(object):
 
@@ -130,9 +131,8 @@ class MyLexer(object):
     t_arrow                         = r'->'
     t_plus_plus                     = r'\+\+'
     t_colon_colon                   = r'::'
-    t_character_constant            = r'\'[a-zA-Z]\''
+    t_character_constant            = r'\"[a-zA-Z]\"'
     t_floating_constant             = r'[0-9]+\.[0-9]+'
-    t_string_literal                = r'\"[a-zA-Z]+\"'
     t_l_paren                       = r'\('
     t_r_paren                       = r'\)'
     t_colon                         = r':'
@@ -154,11 +154,22 @@ class MyLexer(object):
     t_r_bracket                     = r']'
     t_dot                           = r'\.'
     t_l_bracket                     = r'\['
+    #t_at                            = r'@'
+    #t_string_literal                = r'[a-zA-Z0-9_ ]+'
     # A regular expression rule with some action code
     # Note addition of self parameter since we're in a class
+
+
     def t_integer_constant(self,t):
         r'[0-9]+'
         t.value = int(t.value)
+        return t
+
+    def t_string_literal(self, t):
+        #r'@[^"\n]*@$'
+        #r'[@][a-zA-Z_][a-zA-Z0-9_]*[@]'
+        r'@@[a-zA-Z0-9_ ]+@@'
+        t.value = str(t.value)
         return t
 
     def t_identifier(self, t):
@@ -213,7 +224,7 @@ if __name__ == "__main__":
     # Build the lexer
     # m.build()
 
-    with open("hello_world_final_processed.cpp", "r") as f:
+    with open(sys.argv[1], "r") as f:
         data = f.read().strip()
 
 
