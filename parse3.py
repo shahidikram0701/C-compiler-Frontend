@@ -1,6 +1,7 @@
 import os
 import ply.yacc as yacc
 from copy import deepcopy
+import pickle
 
 #import lexer and tokens from the lexer
 from myLex2 import MyLexer
@@ -8,6 +9,8 @@ m = MyLexer()
 tokens = m.tokens
 
 print(tokens)
+
+icg_file = open("hello_world.s", 'w')
 
 class Node:
     def __init__(self, value = None, left = None, right = None, visited = False):
@@ -47,7 +50,7 @@ array_variables = {}
 symbol_entry = {"name": None, "type": None, "value": None, "width": None, "scope": None}
 
 ast_stack = []
-ast_stack_copy = []
+#ast_stack_copy = []
 
 t_num = 1
 label_num = 1
@@ -175,15 +178,35 @@ def generate_label():
     label_num += 1
     return r
 
+def code_gen_print(node):
+    print_code = ""
+    num = 0
+    #print(node)
+    # exp_code
+    def inorder2(node2):
+        nonlocal print_code
+        nonlocal num
+        if(node2 != None):
+            inorder2(node2.left)
+            #print(node2.value)
+            if(node2.value != "sequence" and node2.value != "print"):
+                print_code += "param " + node2.value + "\n"
+                num += 1
+            node2.visited = True
+            inorder2(node2.right)
+    inorder2(node)
+    print_code += "call" + "(cout, " + str(num) + ")"
+    return print_code
+
 def code_gen_if(node):
-    if_code = ""
+    #if_code = ""
     node.left.visited = True
     (cond_code, cond_temp) = code_gen_expression(node.left)
     lab = generate_label()
-    print(cond_code)
-    print("\nifFalse" + " " + cond_temp + " goto" + " " + lab)
+    icg_file.write(cond_code)
+    icg_file.write("\nifFalse" + " " + cond_temp + " goto" + " " + lab + "\n")
     ICG(node.right)
-    print(lab + ":\n")
+    icg_file.write(lab + ":\n")
 
 
 def code_gen_if_else(node):
@@ -192,16 +215,16 @@ def code_gen_if_else(node):
     (cond_code, cond_temp) = code_gen_expression(node.left.left)
     lab = generate_label()
     lab2 = generate_label()
-    print(cond_code)
-    print("\nifFalse" + " " + cond_temp + " goto" + " " + lab)
+    icg_file.write(cond_code)
+    icg_file.write("\nifFalse" + " " + cond_temp + " goto" + " " + lab + '\n')
     node.left.right.visited = True
     ICG(node.left.right.left)
-    print("goto", lab2)
-    print("\n" + lab + ":")
+    icg_file.write("goto " + str(lab2))
+    icg_file.write("\n" + lab + ":" + '\n')
     node.right.visited = True
     node.right.left.visited = True
     ICG(node.right.left.left)
-    print('\n' + lab2 + ":\n")
+    icg_file.write('\n' + lab2 + ":\n")
 
 def code_gen_while(node):
     #while_code = ""
@@ -210,13 +233,13 @@ def code_gen_while(node):
     (cond_code, cond_temp) = code_gen_expression(node.left.left)
     lab = generate_label() #equal to begin
     lab2 = generate_label()
-    print(lab + ":")
-    print(cond_code)
-    print("\nifFalse" + " " + cond_temp + " goto" + " " + lab2)
+    icg_file.write(lab + ":")
+    icg_file.write(cond_code)
+    icg_file.write("\nifFalse" + " " + cond_temp + " goto" + " " + str(lab2) + '\n')
     node.right.visited = True
     ICG(node.right.left)
-    print("goto", lab)
-    print(lab2 + ":")
+    icg_file.write("goto " + str(lab) + '\n')
+    icg_file.write(lab2 + ":" + '\n')
 
 
 def code_gen_declaration(node):
@@ -228,15 +251,25 @@ def code_gen_declaration(node):
 
     node.right.visited = True
     var_name = node.right.left.value
+    #print("var_name : ", var_name)
     node.right.left.visited = True
 
     node.right.right.visited = True
 
     if(node.right.right.value not in ['+', '-', '*', '/', '%']):
-        declaration_code = declaration_code + var_name + " = " + str(node.right.right.value)
+        arr = False
+        for i in range(len(symbol)):
+            if(symbol[i]['name'] == var_name):
+                if(len((symbol[i]['type']).split(" ")) == 2):
+                    arr = True
+                break
+        if(arr):
+            declaration_code = declaration_code + var_name + "[" + str(node.right.right.value) + "]"
+        else:
+            declaration_code = declaration_code + var_name + " = " + str(node.right.right.value)
     else:
         (exp_code, temp) = code_gen_expression(node.right.right)
-        print(exp_code)
+        icg_file.write(exp_code)
         declaration_code = declaration_code + var_name + " = " + temp # wait i'll test
 
     return declaration_code
@@ -246,13 +279,52 @@ def code_gen_assignment(node):
     node.left.visited = True
 
     var_name = node.left.value
+    var_name2 = var_name.split("-")
 
+    if(len(var_name2) == 2):
+        s = 0
+        for i in range(len(symbol)):
+            if(symbol[i]['name'] == var_name2[0]):
+                if(symbol[i]["type"] == "int array"):
+                    s = 4
+                elif(symbol[i]["type"] == "float array"):
+                    s = 8
+                elif(symbol[i]["type"] == "char array"):
+                    s = 1
+        t = get_temp()
+        assignment_code = assignment_code + t + " = " + str(s) + " * " + str(var_name2[1]) + "\n"
+        var_name = var_name2[0] + "[" + t + "]"
     node.right.visited = True
+
     if(node.right.value not in ['+', '-', '*', '/', '%']):
-        assignment_code = assignment_code + var_name + " = " + str(node.right.value)
+        x = node.right.value
+        num = False
+        try:
+            int(x)
+            num = True
+        except:
+            num = False
+        if(num == False and len(x.split("-")) == 2):
+            y = x.split('-')
+            s = 0
+            for i in range(len(symbol)):
+                if(symbol[i]['name'] == y[0]):
+                    if(symbol[i]["type"] == "int array"):
+                        s = 4
+                    elif(symbol[i]["type"] == "float array"):
+                        s = 8
+                    elif(symbol[i]["type"] == "char array"):
+                        s = 1
+                    break
+            t1 = get_temp()
+            t2 = get_temp()
+            assignment_code = assignment_code + t1 + " = " + str(s) + "*" + str(y[1]) + "\n" + t2 + " = " + y[0] + "[" + t1 + "]" + "\n"
+            assignment_code = assignment_code + var_name + " = " + t2
+        else:
+            assignment_code = assignment_code + var_name + " = " + str(node.right.value)
     else:
         (expr_code, expr_temp) = code_gen_expression(node.right)
-        print(expr_code)
+        icg_file.write(expr_code)
         assignment_code = assignment_code + var_name + " = " + expr_temp
 
     return assignment_code
@@ -273,7 +345,7 @@ def code_gen_expression(node):
                 t = get_temp()
                 right = str(exp_stack.pop())
                 left = str(exp_stack.pop())
-                expression_code = expression_code + "\n" + t + " = " + left + " " + node2.value + " " + right
+                expression_code = expression_code + "\n" + t + " = " + left + " " + node2.value + " " + right + '\n'
                 exp_stack.append(t)
             else:
                 exp_stack.append(node2.value)
@@ -289,20 +361,22 @@ def process_node(node):
         if(node.value == "Declaration"):
             #print(node)
             # Code for generating declaration statements
-            print(code_gen_declaration(node))
+            icg_file.write(code_gen_declaration(node) + '\n')
         elif(node.value in ['+', '-', '*', '/', '%']):
             # Code for generating expressions
-            print(code_gen_expression(node)[0])
+            icg_file.write(code_gen_expression(node)[0] + '\n')
         elif(node.value == "="):
             # Code for generating assignment expressions
-            print(code_gen_assignment(node))
+            icg_file.write(code_gen_assignment(node) + '\n')
         elif(node.value == "if"):
             # Code for generating if expressions
-            print(code_gen_if(node))
+            code_gen_if(node)
         elif(node.value == "if-else"):
-            print(code_gen_if_else(node))
+            code_gen_if_else(node)
         elif(node.value == "while"):
-            print(code_gen_while(node))
+            code_gen_while(node)
+        elif(node.value == "print"):
+            icg_file.write(code_gen_print(node))
         node.visited = True
 
 
@@ -314,7 +388,8 @@ def ICG(tree):
 
 
 def p_PROGRAM(p):
-  '''PROGRAM                          : GLOBAL_STATEMENT_LIST MAIN '''
+  '''PROGRAM                          : GLOBAL_STATEMENT_LIST MAIN
+                                      | MAIN'''
   #p[0]['type'] = p[1]
 
   print("\n\n\nACCEPTED!!\n\n")
@@ -333,11 +408,14 @@ def p_PROGRAM(p):
   print("\n\nDISPLAYING THE TREE YO!!\n\n")
   print(ast_stack[0])
 
-  '''
+
   print("\n\nICG YO!!\n\n")
   ICG(ast_stack[0])
+  print("hello_world.s generated!!")
   print()
-  '''
+
+  with open('symbol_table.pickle', 'wb') as handle:
+      pickle.dump(symbol, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 def p_EPSILON(p):
   '''EPSILON                          : '''
@@ -345,8 +423,7 @@ def p_EPSILON(p):
 
 def p_GLOBAL_STATEMENT(p):
   '''GLOBAL_STATEMENT                 : EXPRESSION_STATEMENT
-                                      | DECLARATION_STATEMENT
-                                      | EPSILON'''
+                                      | DECLARATION_STATEMENT'''
   ##print("Outta Global")
 
 def p_MAIN(p):
@@ -482,8 +559,19 @@ def p_SELECTION_STATEMENT(p):
   else:
       # if - else
       print("IF_ELSE")
-
+      ast_stack_copy = p[6]
       print("AST stack - ", ast_stack)
+
+      print("AST stack copy - ", ast_stack_copy)
+      print("*" * 50)
+      print("*" * 50)
+      for i in ast_stack:
+          print(i)
+          print("*" * 50)
+          print()
+      print("*" * 50)
+      print("*" * 50)
+
       #inorder(ast_stack[1].left)
       #inorder(ast_stack[1].right)
       #if_else_shit = ast_stack.pop()
@@ -503,7 +591,8 @@ def p_SELECTION_STATEMENT(p):
 
       if_else_node = Node(value = "if-else", left = ast_stack_copy.pop(), right = else_node)
 
-      ast_stack.insert(0, ast_stack_copy.pop())
+      while(ast_stack_copy):
+          ast_stack.insert(0, ast_stack_copy.pop())
       ast_stack.append(if_else_node)
       #reduce()
 
@@ -512,11 +601,23 @@ def p_TEMP(p):
     print("Else handle")
     print("AST - stack ")
     print(ast_stack)
+    print("*" * 50)
+    print("*" * 50)
+
+    ast_stack_copy = []
+    for i in ast_stack:
+        print(i)
+        print("*" * 50)
+        print()
+    print("*" * 50)
+    print("*" * 50)
     (cond_node, body_node) = gimme2sequences(ast_stack.pop())
     if_node = Node(value = "if", left = Node(value = "cond", left = cond_node), right = Node(value = "if_body", left = body_node))
     ast_stack.append(if_node)
-    ast_stack_copy.insert(0, ast_stack.pop())
-    ast_stack_copy.insert(0, ast_stack.pop())
+    while(ast_stack):
+        ast_stack_copy.insert(0, ast_stack.pop())
+
+    p[0] = ast_stack_copy
 
 
 def p_JUMP_STATEMENT(p):
@@ -544,7 +645,10 @@ def p_ASSIGNMENT_EXPRESSION(p):
       #print("Assignment Expression")
       i = 0
       while( i < len(symbol)):
-          if(symbol[i]["name"] == p[1]):
+          x = ((p[1]).split('-'))[0]
+
+          if(symbol[i]["name"] == x):
+              '''
               if(symbol[i]["type"] == "int"):
                   symbol[i]["value"] = int(p[3]["value"]) # updating symbol table for declared variables after assignment
               elif(symbol[i]["type"] == "float"):
@@ -557,6 +661,7 @@ def p_ASSIGNMENT_EXPRESSION(p):
                   symbol[i]["value"] = float(p[3]["value"]) # updating symbol table for declared variables after assignment
               elif(symbol[i]["type"] == "char"):
                   symbol[i]["value"] = chr(int(p[3]["value"])) # updating symbol table for declared variables after assignment
+              '''
               break
           i += 1
       if(i == len(symbol)):
@@ -808,12 +913,44 @@ def p_EXPRESSION_LIST(p):
 def p_PRIMARY_EXPRESSION(p):
   '''PRIMARY_EXPRESSION               : LITERAL
                                       | l_paren EXPRESSION r_paren
-                                      | NAME'''
+                                      | NAME
+                                      | NAME l_bracket integer_constant r_bracket'''
   #print('PRIMARY_EXPRESSION')
   if(len(p) == 2):
+      #print("len(p) == 2")
       p[0] = p[1]
-  else:
+  elif(len(p) == 4):
+      #print("len(p) == 4")
       p[0] = p[2]
+  else:
+      #print("len(p) == 5")
+      i = 0
+      while( i < len(symbol)):
+          if(symbol[i]['name'] == p[1]):
+              size = symbol[i]["width"]
+              break
+          i += 1
+
+      if(i < len(symbol)):
+          print("here!!")
+          # print(p[1])
+          if(symbol[i]['type'] == "int array"):
+              base_size = 4
+          elif(symbol[i]['type'] == "float array"):
+              base_size = 8
+          elif(symbol[i]['type'] == "char array"):
+              base_size = 1
+
+          if((p[3] * base_size) <= size):
+              p[0] = p[1] + "-" + str(p[3])
+              ast_stack.pop()
+              ast_stack.append(p[0])
+          else:
+              print("\n\nArray Outta bounds\n\n")
+              exit(0)
+      else:
+          print("\n\n Array : ", p[1], "not defined!!!\n\n")
+          exit(0)
 
 def p_NAME(p):
   '''NAME                             : identifier''' # token identifier
@@ -930,7 +1067,7 @@ def p_SIMPLE_TYPE_NAME(p):
   elif(p[1] == "unsigned"):
     p[0] = {'type': 'unsigned', 'width' : 4}
   elif(p[1] == "float"):
-    p[0] = {'type': 'float', 'width' : 4}
+    p[0] = {'type': 'float', 'width' : 8}
   elif(p[1] == "double"):
     p[0] = {'type': 'double', 'width' : 8}
   else:
@@ -979,6 +1116,8 @@ def p_LOCAL_INIT_DECLARATOR(p):
   '''LOCAL_INIT_DECLARATOR            : LOCAL_DECLARATOR INITIALIZER
                                       | LOCAL_DECLARATOR'''
   #print("LOCAL_INIT_DECLARATOR")
+  #print(p[0])
+  #print(p[1])
   if(len(p) == 3):
       #print("p[0] = ", p[0])
       p[0] = p[2]
@@ -1131,3 +1270,5 @@ l = o.read().strip()
 o.close()
 print(l)
 yacc.parse(l)
+
+icg_file.close()
