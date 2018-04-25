@@ -398,8 +398,8 @@ def p_PROGRAM(p):
   print("*" * 50)
   print("Symbol_Table\n") # why p[1]??
   print_symbol_table()
-  print("\n\nAST\n\n")
-  print("AST - stack\n\n", ast_stack)
+  #print("\n\nAST\n\n")
+  #print("AST - stack\n\n", ast_stack)
   i = 0
   while(i < len(ast_stack) and type(ast_stack[i]) != Node):
       i += 1
@@ -413,7 +413,7 @@ def p_PROGRAM(p):
 
   print("\n\nICG YO!!\n\n")
   ICG(ast_stack[0])
-  print("hello_world.s generated!!")
+  print(sys.argv[1][:len(sys.argv[1]) - 20] + ".s" + " is generated!!")
   print()
 
   with open('symbol_table.pickle', 'wb') as handle:
@@ -478,7 +478,7 @@ def p_CASCADE(p):
                                       | left_shift string_literal
                                       | left_shift EXPRESSION CASCADE
                                       | left_shift string_literal CASCADE'''
-  print("HERE!!\n")
+  #print("HERE!!\n")
   p[0] = p[2]
   if(p[2] != None and p[2].startswith("@@")):
       ast_stack.append(p[2])
@@ -569,19 +569,19 @@ def p_SELECTION_STATEMENT(p):
       #reduce()
   else:
       # if - else
-      print("IF_ELSE")
+      #print("IF_ELSE")
       ast_stack_copy = p[6]
-      print("AST stack - ", ast_stack)
+      #print("AST stack - ", ast_stack)
 
-      print("AST stack copy - ", ast_stack_copy)
-      print("*" * 50)
-      print("*" * 50)
-      for i in ast_stack:
-          print(i)
-          print("*" * 50)
-          print()
-      print("*" * 50)
-      print("*" * 50)
+      #print("AST stack copy - ", ast_stack_copy)
+      #print("*" * 50)
+      #print("*" * 50)
+      #for i in ast_stack:
+          #print(i)
+          #print("*" * 50)
+          #print()
+      #print("*" * 50)
+      #print("*" * 50)
 
       #inorder(ast_stack[1].left)
       #inorder(ast_stack[1].right)
@@ -609,19 +609,19 @@ def p_SELECTION_STATEMENT(p):
 
 def p_TEMP(p):
     '''TEMP                           : EPSILON '''
-    print("Else handle")
-    print("AST - stack ")
-    print(ast_stack)
-    print("*" * 50)
-    print("*" * 50)
+    #print("Else handle")
+    #print("AST - stack ")
+    #print(ast_stack)
+    #print("*" * 50)
+    #print("*" * 50)
 
     ast_stack_copy = []
-    for i in ast_stack:
-        print(i)
-        print("*" * 50)
-        print()
-    print("*" * 50)
-    print("*" * 50)
+    #for i in ast_stack:
+        #print(i)
+        #print("*" * 50)
+        #print()
+    #print("*" * 50)
+    #print("*" * 50)
     (cond_node, body_node) = gimme2sequences(ast_stack.pop())
     if_node = Node(value = "if", left = Node(value = "cond", left = cond_node), right = Node(value = "if_body", left = body_node))
     ast_stack.append(if_node)
@@ -943,7 +943,7 @@ def p_PRIMARY_EXPRESSION(p):
           i += 1
 
       if(i < len(symbol)):
-          print("here!!")
+          #print("here!!")
           # print(p[1])
           if(symbol[i]['type'] == "int array"):
               base_size = 4
@@ -983,8 +983,7 @@ def p_LITERAL(p):
 
 #***************************************************DECLARATIONS**********************************************************************
 def p_DECLARATION(p):
-  '''DECLARATION                      : DECL_SPECIFIERS DECLARATOR_LIST semicolon
-                                      | FUNCTION_DEFINITION'''
+  '''DECLARATION                      : DECL_SPECIFIERS DECLARATOR_LIST semicolon'''
   #print("I am here")
   if(len(p) == 4):
     p[0] = p[2]
@@ -1049,9 +1048,7 @@ def p_DECL_SPECIFIERS(p):
 
 
 def p_TYPE_SPECIFIER(p):
-  '''TYPE_SPECIFIER                   : SIMPLE_TYPE_NAME
-                                      | CLASS_SPECIFIER
-                                      | ELABORATED_TYPE_SPECIFIER''' #tokens for last 2
+  '''TYPE_SPECIFIER                   : SIMPLE_TYPE_NAME''' #tokens for last 2
   p[0] = p[1]
 
 def p_SIMPLE_TYPE_NAME(p):
@@ -1083,13 +1080,6 @@ def p_SIMPLE_TYPE_NAME(p):
     p[0] = {'type': 'double', 'width' : 8}
   else:
     p[0] = {'type': 'void', 'width' : 0}
-
-def p_ELABORATED_TYPE_SPECIFIER(p):
-  '''ELABORATED_TYPE_SPECIFIER        : CLASS_KEY identifier
-                                      | CLASS_KEY NAME''' #token for identifier
-
-def p_CLASS_KEY(p):
-  '''CLASS_KEY                        : Class''' #add tokens for class and struct
 
 def p_CONSTANT_EXPRESSION(p):
   '''CONSTANT_EXPRESSION             : CONDITIONAL_EXPRESSION'''
@@ -1141,7 +1131,6 @@ def p_LOCAL_INIT_DECLARATOR(p):
 
 def p_DECLARATOR(p):
   '''DECLARATOR                       : DNAME
-                                      | DECLARATOR l_paren ARG_DECLARATION_LIST r_paren
                                       | DECLARATOR l_bracket CONSTANT_EXPRESSION r_bracket
                                       | DECLARATOR l_bracket r_bracket
                                       | l_paren DECLARATOR r_paren'''
@@ -1183,24 +1172,9 @@ def p_LOCAL_DECLARATOR(p):
 def p_DNAME(p):
   '''DNAME                            : NAME
                                       | tilde NAME'''
-  print("DNAME")
+  #print("DNAME")
   p[0] = p[1]
 
-def p_ARG_DECLARATION_LIST(p):
-  '''ARG_DECLARATION_LIST             : ARGUMENT_DECLARATION
-                                      | ARG_DECLARATION_LIST comma ARGUMENT_DECLARATION'''
-
-def p_ARGUMENT_DECLARATION(p):
-  '''ARGUMENT_DECLARATION             : DECL_SPECIFIERS DECLARATOR
-                                      | DECL_SPECIFIERS DECLARATOR equal EXPRESSION
-                                      | DECL_SPECIFIERS
-                                      | EPSILON''' # token for =
-
-def p_FUNCTION_DEFINITION(p):
-  '''FUNCTION_DEFINITION              : DECL_SPECIFIERS DECLARATOR FCT_BODY'''
-
-def p_FCT_BODY(p):
-  '''FCT_BODY                         : COMPOUND_STATEMENT'''
 
 def p_INITIALIZER(p):
   '''INITIALIZER                      : equal ASSIGNMENT_EXPRESSION
@@ -1208,59 +1182,6 @@ def p_INITIALIZER(p):
   #print("INITIALISER")
   #print(p[2])
   p[0] = p[2]
-
-#***************************************************CLASSES**************************************************************************
-#CLASS DECLARATIONS
-
-def p_CLASS_SPECIFIER(p):
-  '''CLASS_SPECIFIER                  : CLASS_HEAD l_brace MEMBER_LIST r_brace
-                                      | CLASS_HEAD l_brace r_brace '''
-  #print("In class")
-
-def p_CLASS_HEAD(p):
-  '''CLASS_HEAD                       : CLASS_KEY
-                                      | CLASS_KEY NAME'''
-
-def p_MEMBER_LIST(p):
-  '''MEMBER_LIST                      : MEMBER_DECLARATION MEMBER_LIST
-                                      | MEMBER_DECLARATION
-                                      | ACCESS_SPECIFIER colon MEMBER_LIST
-                                      | ACCESS_SPECIFIER colon '''
-
-def p_MEMBER_DECLARATION(p):
-  '''MEMBER_DECLARATION               : DECL_SPECIFIERS MEMBER_DECLARATOR_LIST semicolon
-                                      | MEMBER_DECLARATOR_LIST semicolon
-                                      | FUNCTION_DEFINITION semicolon
-                                      | FUNCTION_DEFINITION''' #add token for qualified_name
-
-def p_MEMBER_DECLARATOR_LIST(p):
-  '''MEMBER_DECLARATOR_LIST           : MEMBER_DECLARATOR
-                                      | MEMBER_DECLARATOR_LIST comma MEMBER_DECLARATOR''' #token alert
-
-
-
-def p_MEMBER_DECLARATOR(p):
-  '''MEMBER_DECLARATOR                : DECLARATOR PURE_SPECIFIER
-                                      | DECLARATOR'''
-
-def p_PURE_SPECIFIER(p):
-  '''PURE_SPECIFIER                   : equal integer_constant'''
-
-def p_ACCESS_SPECIFIER(p):
-  '''ACCESS_SPECIFIER                 : Private
-                                      | Protected
-                                      | Public''' #add token for private, protected, public
-
-def p_MEM_INITIALIZER_LIST(p):
-  '''MEM_INITIALIZER_LIST             : MEM_INITIALIZER
-                                      | MEM_INITIALIZER comma MEM_INITIALIZER_LIST'''
-
-def p_MEM_INITIALIZER(p):
-  '''MEM_INITIALIZER                  : NAME l_paren EXPRESSION_LIST r_paren
-                                      | NAME l_paren r_paren
-                                      | identifier l_paren EXPRESSION_LIST r_paren
-                                      | identifier l_paren r_paren '''
-
 
 #****************************************************************************************************************
 
