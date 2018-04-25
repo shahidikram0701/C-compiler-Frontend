@@ -2,6 +2,7 @@ import os
 import ply.yacc as yacc
 from copy import deepcopy
 import pickle
+import sys
 
 #import lexer and tokens from the lexer
 from myLex2 import MyLexer
@@ -10,7 +11,7 @@ tokens = m.tokens
 
 print(tokens)
 
-icg_file = open("hello_world.s", 'w')
+icg_file = open(sys.argv[1][:len(sys.argv[1]) - 20] + ".s", 'w')
 
 class Node:
     def __init__(self, value = None, left = None, right = None, visited = False):
@@ -189,13 +190,14 @@ def code_gen_print(node):
         if(node2 != None):
             inorder2(node2.left)
             #print(node2.value)
-            if(node2.value != "sequence" and node2.value != "print"):
-                print_code += "param " + node2.value + "\n"
-                num += 1
-            node2.visited = True
+            if(node2.visited == False):
+                if(node2.value != "sequence" and node2.value != "print" and node2.value != "Declaration" and node2.value not in ['+', '-', '*', '/', '%'] and node2.value != "if" and node2.value != "if-else" and node2.value != "while"):
+                    print_code += "param " + str(node2.value) + "\n"
+                    num += 1
+                node2.visited = True
             inorder2(node2.right)
     inorder2(node)
-    print_code += "call" + "(cout, " + str(num) + ")"
+    print_code += "call" + "(cout, " + str(num) + ")" + "\n"
     return print_code
 
 def code_gen_if(node):
@@ -459,8 +461,11 @@ def p_PRINT_STATEMENT(p):
                       break
                   j += 1
               if(j >= len(symbol)):
-                  print("\n\nERROR!! Printing an undeclared variable", ast_stack[i], "\n\n")
-                  exit(0)
+                  if(str(p[2]).startswith('@@')):
+                      pass
+                  else:
+                      print("\n\nERROR!! Printing an undeclared variable", ast_stack[i], "\n\n")
+                      exit(0)
           ast_stack[i] = Node(value = ast_stack[i])
   while(len(ast_stack) != 2):
       reduce()
@@ -470,7 +475,13 @@ def p_PRINT_STATEMENT(p):
 
 def p_CASCADE(p):
   '''CASCADE                          : left_shift EXPRESSION
-                                      | left_shift EXPRESSION CASCADE'''
+                                      | left_shift string_literal
+                                      | left_shift EXPRESSION CASCADE
+                                      | left_shift string_literal CASCADE'''
+  print("HERE!!\n")
+  p[0] = p[2]
+  if(p[2] != None and p[2].startswith("@@")):
+      ast_stack.append(p[2])
   #print("CASCADE")
   #print("AST_stack = ", ast_stack)
 
@@ -1265,7 +1276,7 @@ def p_error(p):
 print("\n\nBUILDING PARSER\n\n")
 parser = yacc.yacc()
 
-o = open("hello_world_final_processed.cpp", 'r')
+o = open(sys.argv[1], 'r')
 l = o.read().strip()
 o.close()
 print(l)
