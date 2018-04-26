@@ -320,7 +320,7 @@ def code_gen_assignment(node):
                     break
             t1 = get_temp()
             t2 = get_temp()
-            assignment_code = assignment_code + t1 + " = " + str(s) + "*" + str(y[1]) + "\n" + t2 + " = " + y[0] + "[" + t1 + "]" + "\n"
+            assignment_code = assignment_code + t1 + " = " + str(s) + " * " + str(y[1]) + "\n" + t2 + " = " + y[0] + "[" + t1 + "]" + "\n"
             assignment_code = assignment_code + var_name + " = " + t2
         else:
             assignment_code = assignment_code + var_name + " = " + str(node.right.value)
@@ -398,8 +398,8 @@ def p_PROGRAM(p):
   print("*" * 50)
   print("Symbol_Table\n") # why p[1]??
   print_symbol_table()
-  #print("\n\nAST\n\n")
-  #print("AST - stack\n\n", ast_stack)
+  print("\n\nAST\n\n")
+  print("AST - stack\n\n", ast_stack)
   i = 0
   while(i < len(ast_stack) and type(ast_stack[i]) != Node):
       i += 1
@@ -648,6 +648,8 @@ def p_EXPRESSION(p):
   '''EXPRESSION                       : ASSIGNMENT_EXPRESSION
                                       | EXPRESSION comma ASSIGNMENT_EXPRESSION'''
   #print("Expression")
+  p[0] = p[1]
+
 def p_ASSIGNMENT_EXPRESSION(p):
   '''ASSIGNMENT_EXPRESSION            : CONDITIONAL_EXPRESSION
                                       | UNARY_EXPRESSION ASSIGNMENT_OPERATOR ASSIGNMENT_EXPRESSION'''
@@ -925,7 +927,8 @@ def p_PRIMARY_EXPRESSION(p):
   '''PRIMARY_EXPRESSION               : LITERAL
                                       | l_paren EXPRESSION r_paren
                                       | NAME
-                                      | NAME l_bracket integer_constant r_bracket'''
+                                      | NAME l_bracket integer_constant r_bracket
+                                      | NAME l_bracket EXPRESSION r_bracket'''
   #print('PRIMARY_EXPRESSION')
   if(len(p) == 2):
       #print("len(p) == 2")
@@ -952,16 +955,36 @@ def p_PRIMARY_EXPRESSION(p):
           elif(symbol[i]['type'] == "char array"):
               base_size = 1
 
-          if((p[3] * base_size) <= size):
-              p[0] = p[1] + "-" + str(p[3])
+          rough = p[3]
+          #print("rough = ", rough)
+          if(type(rough) == str):
+              k = 0
+              while(k < len(symbol)):
+                  if(symbol[k]['name'] == rough):
+                      #print("here")
+                      rough = symbol[k]["name"]
+                      break
+                  k += 1
+              if(k >= len(symbol)):
+                  print("\n\nVariable", rough, "not declared!!\n")
+                  exit(0)
+              #print(ast_stack[-1])
+              ast_stack.pop()
+          '''if((rough * base_size) <= size):
+              p[0] = p[1] + "-" + str(rough)
               ast_stack.pop()
               ast_stack.append(p[0])
           else:
               print("\n\nArray Outta bounds\n\n")
               exit(0)
+          '''
+          p[0] = p[1] + "-" + str(rough)
+          ast_stack.pop()
+          ast_stack.append(p[0])
       else:
           print("\n\n Array : ", p[1], "not defined!!!\n\n")
           exit(0)
+
 
 def p_NAME(p):
   '''NAME                             : identifier''' # token identifier
@@ -1122,6 +1145,11 @@ def p_LOCAL_INIT_DECLARATOR(p):
   if(len(p) == 3):
       #print("p[0] = ", p[0])
       p[0] = p[2]
+      #print("p[1] = ", p[1])
+      if(type(p[0]) != dict):
+          x = deepcopy(symbol_entry)
+          x['value'] = None;
+          p[0] = deepcopy(x)
       p[0]["name"] = p[1]
       #print("p[0] = ", p[0])
   else:
