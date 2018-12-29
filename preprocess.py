@@ -87,13 +87,17 @@ for i in range(len(x)):
 			if(tok.type == "IDENTIFIER"):
 				new_line = line[:tok.lexpos] + macros[line[tok.lexpos]] + line[tok.lexpos+1:]
 				line = new_line
-
+		#print(new_line == "")
 		if(new_line):
 			#print(new_line)
 			#print(tok.lexpos)
-			o.write(new_line)
+			if(new_line != ""):
+				o.write(new_line)
+				o.write('\n')
 		else:
 			#print(line)
-			o.write(line)
+			if(line != ""):
+				o.write(line)
+				o.write('\n')
 
 o.close()
